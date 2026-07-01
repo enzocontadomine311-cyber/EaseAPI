@@ -1,154 +1,155 @@
 const express = require('express');
-const axios = require('axios');
-const path = require('path');
 const app = express();
+const PORT = process.env.PORT || 10000; // Porta padrão da Render
 
-// Puxa as configurações das variáveis de ambiente da Render
-const config = {
-    authorization: process.env.AUTHORIZATION || "",
-    clientid: process.env.CLIENTID || "",
-    secret: process.env.SECRET || "",
-    url: process.env.URL || "https://easeapi-pkaq.onrender.com",
-    guild_id: process.env.GUILD_ID || "",
-    role: process.env.ROLE || "",
-    token: process.env.TOKEN || ""
-};
+// --- CONFIGURAÇÕES DO SEU APP DISCORD (Preencha com os seus dados se tiver) ---
+const CLIENT_ID = 'SEU_CLIENT_ID_AQUI'; 
+const REDIRECT_URI = 'https://easeapi-pkaq.onrender.com/callback'; 
+const DISCORD_AUTH_URL = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify%20guilds`;
 
-const PORT = process.env.PORT || 3000;
-
-// Rota Principal: Entrega o visual bonito para o usuário
+// Rota Principal: Envia a interface visual bonita do Discord
 app.get('/', (req, res) => {
-    const { username, avatar, success, error } = req.query;
-
     res.send(`
     <!DOCTYPE html>
     <html lang="pt-BR">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>EaseAPI - Verificar Conta</title>
+        <title>EaseAPI - Dashboard</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=gg+sans:wght@400;600;700&display=swap" rel="stylesheet">
         <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: 'gg sans', 'Helvetica Neue', Arial, sans-serif;
+            }
+
             body {
-                background-color: #23272a;
-                color: #ffffff;
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background-color: #313338; /* Fundo escuro oficial do Discord */
+                color: #dbdee1;
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                height: 100vh;
-                margin: 0;
+                min-height: 100vh;
             }
-            .card {
-                background-color: #2c2f33;
-                padding: 40px;
-                border-radius: 12px;
-                box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-                text-align: center;
-                max-width: 400px;
+
+            .container {
+                background-color: #1e1f22; /* Card mais escuro de fundo */
                 width: 100%;
+                max-width: 480px;
+                padding: 40px;
+                border-radius: 8px;
+                box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+                text-align: center;
             }
-            .avatar {
-                width: 100px;
-                height: 100px;
+
+            .logo-area {
+                margin-bottom: 24px;
+            }
+
+            .logo-icon {
+                width: 80px;
+                height: 80px;
+                background-color: #5865f2; /* Azul Blurple do Discord */
                 border-radius: 50%;
-                border: 4px solid #5865F2;
-                margin-bottom: 20px;
-                background-color: #23272a;
+                display: inline-flex;
+                justify-content: center;
+                align-items: center;
+                margin-bottom: 16px;
             }
-            h2 { margin: 10px 0; font-size: 24px; }
-            p { color: #b9bbbe; font-size: 14px; margin-bottom: 30px; }
-            .btn-discord {
-                background-color: #5865F2;
-                color: white;
-                padding: 14px 28px;
-                border: none;
-                border-radius: 5px;
+
+            .logo-icon svg {
+                width: 45px;
+                height: 45px;
+                fill: #ffffff;
+            }
+
+            h1 {
+                color: #f2f3f5;
+                font-size: 24px;
+                font-weight: 700;
+                margin-bottom: 8px;
+            }
+
+            p {
+                color: #b5bac1;
                 font-size: 16px;
-                font-weight: bold;
-                cursor: pointer;
-                text-decoration: none;
-                transition: background 0.2s;
-                display: inline-block;
+                margin-bottom: 32px;
+                line-height: 1.4;
             }
-            .btn-discord:hover { background-color: #4752C4; }
-            .success-msg { color: #43b581; font-weight: bold; font-size: 16px; }
-            .error-msg { color: #f04747; font-weight: bold; font-size: 16px; }
+
+            .btn-discord {
+                background-color: #5865f2;
+                color: #ffffff;
+                border: none;
+                width: 100%;
+                padding: 14px 24px;
+                font-size: 16px;
+                font-weight: 600;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: background-color 0.2s ease, transform 0.1s ease;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 10px;
+                text-decoration: none;
+            }
+
+            .btn-discord:hover {
+                background-color: #4752c4;
+            }
+
+            .btn-discord:active {
+                transform: scale(0.98);
+            }
+
+            .btn-discord svg {
+                width: 24px;
+                height: 24px;
+                fill: #ffffff;
+            }
         </style>
     </head>
     <body>
-        <div class="card">
-            <img id="avatar" class="avatar" src="${avatar ? avatar : 'https://discord.com/assets/c09a43a372ba81e1957e3138bde781d4.png'}" alt="Avatar">
-            <h2>${username ? 'Olá, ' + username + '!' : 'Verificação Obligatória'}</h2>
-            
-            <p id="status-text">
-                ${success === 'true' ? '<span class="success-msg">✅ Cargo adicionado com sucesso! Já pode fechar esta aba.</span>' : 
-                  error ? `<span class="error-msg">❌ Erro: ${error}</span>` : 
-                  'Para entrar no servidor e receber seu cargo automaticamente, clique no botão abaixo para se verificar.'}
-            </p>
-            
-            ${!username && !error ? `<a href="/login" class="btn-discord">Logar com o Discord</a>` : ''}
+
+        <div class="container">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <!-- Ícone do Discord -->
+                    <svg viewBox="0 0 127.14 96.36">
+                        <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53A105.73,105.73,0,0,0,32,96.36a74.37,74.37,0,0,0,6.71-11,68.6,68.6,0,0,1-10.57-5.1c.9-.65,1.76-1.34,2.58-2a75.58,75.58,0,0,0,72.7,0c.82.71,1.68,1.4,2.58,2a68.86,68.86,0,0,1-10.57,5.1,74.91,74.91,0,0,0,6.71,11,105.54,105.54,0,0,0,31.06-18.83C129.87,48,124.16,25.21,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.92,46,53.72,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.16,46,96,53,91,65.69,84.69,65.69Z"/>
+                    </svg>
+                </div>
+                <h1>EaseAPI</h1>
+                <p>Conecte sua conta do Discord para gerenciar sua aplicação com facilidade.</p>
+            </div>
+
+            <!-- Botão que envia o usuário para o Login do Discord -->
+            <a href="${DISCORD_AUTH_URL}" class="btn-discord">
+                Entrar com o Discord
+            </a>
         </div>
+
     </body>
     </html>
     `);
 });
 
-// Rota de Login: Redireciona o usuário para o OAuth2 do Discord
-app.get('/login', (req, res) => {
-    const redirectUri = encodeURIComponent(`${config.url}/callback`);
-    const discordLoginUrl = `https://discord.com/oauth2/authorize?client_id=${config.clientid}&redirect_uri=${redirectUri}&response_type=code&scope=identify%20guilds.join`;
-    res.redirect(discordLoginUrl);
-});
-
-// Rota de Callback: Processa os dados do Discord e dá o cargo
-app.get('/callback', async (req, res) => {
-    const { code } = req.query;
-
-    if (!code) {
-        return res.redirect('/?error=Codigo_de_autorizacao_nao_encontrado');
-    }
-
-    try {
-        // 1. Troca o código pelo Token de Acesso do usuário
-        const tokenResponse = await axios.post('https://discord.com/api/v10/oauth2/token', new URLSearchParams({
-            client_id: config.clientid,
-            client_secret: config.secret,
-            grant_type: 'authorization_code',
-            code: code,
-            redirect_uri: `${config.url}/callback`
-        }), {
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        });
-
-        const accessToken = tokenResponse.data.access_token;
-
-        // 2. Puxa o perfil do usuário (Nome e Avatar)
-        const userResponse = await axios.get('https://discord.com/api/v10/users/@me', {
-            headers: { Authorization: `Bearer ${accessToken}` }
-        });
-
-        const user = userResponse.data;
-        const avatarUrl = user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` : 'https://discord.com/assets/c09a43a372ba81e1957e3138bde781d4.png';
-
-        // 3. Dá o cargo para o usuário no servidor via Bot
-        try {
-            await axios.put(`https://discord.com/api/v10/guilds/${config.guild_id}/members/${user.id}/roles/${config.role}`, {}, {
-                headers: { Authorization: `Bot ${config.token}` }
-            });
-
-            // Redireciona de volta mostrando o sucesso, o nome e a foto dele
-            res.redirect(`/?username=${encodeURIComponent(user.username)}&avatar=${encodeURIComponent(avatarUrl)}&success=true`);
-        } catch (roleError) {
-            console.error("Erro ao dar cargo:", roleError.response?.data || roleError.message);
-            res.redirect(`/?username=${encodeURIComponent(user.username)}&avatar=${encodeURIComponent(avatarUrl)}&error=O_Bot_nao_conseguiu_dar_o_cargo`);
-        }
-
-    } catch (error) {
-        console.error("Erro no processo OAuth2:", error.response?.data || error.message);
-        res.redirect('/?error=Falha_na_autenticacao');
+// Rota de Callback (Para onde o Discord manda o usuário depois do login)
+app.get('/callback', (req, res) => {
+    const code = req.query.code;
+    if (code) {
+        res.send("<h1>Login Efetuado com Sucesso!</h1><p>Você já pode fechar esta aba.</p>");
+    } else {
+        res.status(400).send("<h1>Erro de Autenticação</h1><p>Código de autorização não encontrado.</p>");
     }
 });
 
+// Inicia o servidor
 app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
+    console.log(`Servidor ativado com sucesso na porta ${PORT}`);
 });
