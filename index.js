@@ -3,7 +3,7 @@ const app = express();
 const PORT = process.env.PORT || 10000; // Porta padrão da Render
 
 // --- CONFIGURAÇÕES DO SEU APP DISCORD (Preencha com os seus dados se tiver) ---
-const CLIENT_ID = 'SEU_CLIENT_ID_AQUI'; 
+const CLIENT_ID = '1180616406002315384'; 
 const REDIRECT_URI = 'https://easeapi-pkaq.onrender.com/callback'; 
 const DISCORD_AUTH_URL = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify%20guilds`;
 
